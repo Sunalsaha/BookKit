@@ -19,7 +19,7 @@ export default function index() {
       //<Redirect href="/(screen)/Support" />
       //<Redirect href="/(screen)/OrdersScreen" />
       //<Redirect href="/(screen)/OrderDetailsScreen" />
-      <Redirect href="/(screen)/OrderDetailsScreen2" />
+    // <Redirect href="/(screen)/OrderDetailsScreen2" />
       //<Redirect href="/(screen)/Location"/>
       //<Redirect href="/(screen)/Deliverables Screen"/>
       //<Redirect href="/(screen)/gold-coins"/>
@@ -27,6 +27,9 @@ export default function index() {
     //<Redirect href="/(screen)/SplashScreen"/>
  // <Redirect href="/Components/LoadingComponent" />
  //<Redirect href="/Components/Floatingchip" />
+ //<Redirect href="/(screen)/UserCancelScreen" />
+ //<Redirect href="/(screen)/SellerCancelScreen" />
+ <Redirect href="/(screen)/Delevered" />
 
   
   );

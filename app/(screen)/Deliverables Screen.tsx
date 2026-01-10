@@ -11,20 +11,20 @@ import {
   Platform,
   Alert,
   useWindowDimensions,
-  PixelRatio
+  TextInput
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router'; // Import useRouter
+import { useRouter } from 'expo-router';
 import { 
   ArrowLeft,
   MapPin,
   Phone,
   Clock,
-  Navigation
+  Navigation,
+  Lock
 } from 'lucide-react-native';
 
-// --- Types ---
 interface DeliveryItem {
   id: string;
   title: string;
@@ -37,25 +37,20 @@ interface DeliveryItem {
   price: string;
   distance: string;
   image: string;
+  otp?: string;
 }
 
 const DeliverablesScreen = () => {
-  // --- Navigation Hook ---
   const router = useRouter();
-
-  // --- Responsive Hooks ---
   const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT, fontScale } = useWindowDimensions();
 
-  // Base dimensions (iPhone 8 / SE standard)
   const baseWidth = 375;
   const baseHeight = 667;
 
-  // Dynamic Scaling Functions inside component to access current dimensions
   const scale = (size: number) => (SCREEN_WIDTH / baseWidth) * size;
   const verticalScale = (size: number) => (SCREEN_HEIGHT / baseHeight) * size;
   const moderateScale = (size: number, factor = 0.5) => size + (scale(size) - size) * factor;
 
-  // --- Mock Data ---
   const [deliveries, setDeliveries] = useState<DeliveryItem[]>([
     {
       id: '1',
@@ -82,10 +77,14 @@ const DeliverablesScreen = () => {
       price: '₹60',
       distance: '5.2 km',
       image: "https://ncert.nic.in/textbook/pdf/leph1cc.jpg",
+      otp: '4532',
     },
   ]);
 
-  // --- Actions ---
+  const generateOTP = () => {
+    return Math.floor(1000 + Math.random() * 9000).toString();
+  };
+
   const handleAcceptOrder = (id: string) => {
     Alert.alert(
       "Accept Delivery?",
@@ -95,9 +94,34 @@ const DeliverablesScreen = () => {
         { 
           text: "Accept", 
           onPress: () => {
+            const newOTP = generateOTP();
             const updated = deliveries.map(item => 
-              item.id === id ? { ...item, status: 'accepted' as const } : item
+              item.id === id ? { ...item, status: 'accepted' as const, otp: newOTP } : item
             );
+            setDeliveries(updated);
+            
+            Alert.alert(
+              "Order Accepted!",
+              `Delivery OTP: ${newOTP}\n\nShare this OTP with the customer for verification.`,
+              [{ text: "OK" }]
+            );
+          } 
+        }
+      ]
+    );
+  };
+
+  const handleCancelOrder = (id: string) => {
+    Alert.alert(
+      "Cancel Delivery?",
+      "Are you sure you want to cancel this delivery? This action cannot be undone.",
+      [
+        { text: "No", style: "cancel" },
+        { 
+          text: "Yes, Cancel", 
+          style: "destructive",
+          onPress: () => {
+            const updated = deliveries.filter(item => item.id !== id);
             setDeliveries(updated);
           } 
         }
@@ -121,7 +145,6 @@ const DeliverablesScreen = () => {
     if (url) Linking.openURL(url);
   };
 
-  // --- Dynamic Styles ---
   const styles = createStyles(scale, verticalScale, moderateScale, fontScale);
 
   return (
@@ -134,10 +157,8 @@ const DeliverablesScreen = () => {
       <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent={true} />
       
       <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
-        {/* Header */}
         <View style={styles.headerContainer}>
           <View style={styles.topBar}>
-            {/* Updated Back Button with Navigation */}
             <TouchableOpacity 
               style={styles.backButton}
               onPress={() => router.push('/(screen)/Profile')} 
@@ -158,7 +179,6 @@ const DeliverablesScreen = () => {
 
           {deliveries.map((item) => (
             <View key={item.id} style={styles.cardContainer}>
-              {/* Top Row: Image & Basic Info */}
               <View style={styles.cardMain}>
                 <View style={styles.imageWrapper}>
                   <Image 
@@ -198,13 +218,10 @@ const DeliverablesScreen = () => {
                 </View>
               </View>
 
-              {/* Divider */}
               <View style={styles.separator} />
 
-              {/* Action Area: Changes based on Status */}
               <View style={styles.actionArea}>
                 {item.status === 'pending' ? (
-                  // State 1: Pending (Accept Button)
                   <View style={styles.pendingContainer}>
                     <View style={styles.locationPreview}>
                       <MapPin size={moderateScale(16)} color="#6b7280" />
@@ -212,15 +229,22 @@ const DeliverablesScreen = () => {
                         Pickup: {item.pickupLocation}
                       </Text>
                     </View>
-                    <TouchableOpacity 
-                      style={styles.acceptButton}
-                      onPress={() => handleAcceptOrder(item.id)}
-                    >
-                      <Text style={styles.acceptButtonText}>Accept Order</Text>
-                    </TouchableOpacity>
+                    <View style={styles.actionButtons}>
+                      <TouchableOpacity 
+                        style={styles.cancelButton}
+                        onPress={() => handleCancelOrder(item.id)}
+                      >
+                        <Text style={styles.cancelButtonText}>Cancel</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity 
+                        style={styles.acceptButton}
+                        onPress={() => handleAcceptOrder(item.id)}
+                      >
+                        <Text style={styles.acceptButtonText}>Accept</Text>
+                      </TouchableOpacity>
+                    </View>
                   </View>
                 ) : (
-                  // State 2: Accepted (Location & Call)
                   <View style={styles.activeContainer}>
                     <View style={styles.addressBox}>
                       <View style={styles.addressRow}>
@@ -253,6 +277,15 @@ const DeliverablesScreen = () => {
                         <Text style={styles.navigateButtonText}>Navigate</Text>
                       </TouchableOpacity>
                     </View>
+
+                    {/* Customer OTP Display Only */}
+                    {item.otp && (
+                      <View style={styles.otpSection}>
+                        <Lock size={moderateScale(20)} color="#059669" />
+                        <Text style={styles.otpLabel}>Customer OTP</Text>
+                        <Text style={styles.otpValue}>{item.otp}</Text>
+                      </View>
+                    )}
                   </View>
                 )}
               </View>
@@ -266,7 +299,6 @@ const DeliverablesScreen = () => {
   );
 };
 
-// --- Style Creator ---
 const createStyles = (
   scale: (n: number) => number, 
   verticalScale: (n: number) => number, 
@@ -277,7 +309,7 @@ const createStyles = (
   safeArea: { flex: 1 },
   headerContainer: {
     paddingHorizontal: scale(20),
-    paddingTop: Platform.OS === 'android' ? verticalScale(40) : verticalScale(10), // Adjust for Android status bar
+    paddingTop: Platform.OS === 'android' ? verticalScale(40) : verticalScale(10),
     paddingBottom: verticalScale(10),
   },
   topBar: { 
@@ -286,7 +318,7 @@ const createStyles = (
   },
   backButton: { marginRight: scale(15) },
   screenTitle: { 
-    fontSize: moderateScale(20) / fontScale, // Adjust font size for user settings
+    fontSize: moderateScale(20) / fontScale,
     fontWeight: '600', 
     color: '#000', 
   },
@@ -299,7 +331,6 @@ const createStyles = (
     marginLeft: scale(4),
   },
   
-  // Card Styles
   cardContainer: {
     backgroundColor: '#ffffff',
     borderRadius: moderateScale(16),
@@ -317,7 +348,7 @@ const createStyles = (
   },
   imageWrapper: {
     width: scale(65),
-    height: scale(80), // Slightly taller for books
+    height: scale(80),
     borderRadius: moderateScale(8),
     backgroundColor: '#f3f4f6',
     marginRight: scale(12),
@@ -365,33 +396,44 @@ const createStyles = (
     marginVertical: verticalScale(10),
   },
 
-  // Action Areas
   actionArea: { marginTop: verticalScale(4) },
   
-  // Pending State Styles
   pendingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: verticalScale(10),
   },
   locationPreview: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: scale(6),
-    flex: 1,
-    marginRight: scale(10), // Prevent text hitting button
   },
   locationTextPreview: {
     fontSize: moderateScale(13) / fontScale,
     color: '#4b5563',
     flex: 1,
   },
-  acceptButton: {
-    backgroundColor: '#000',
-    paddingHorizontal: scale(16),
+  actionButtons: {
+    flexDirection: 'row',
+    gap: scale(12),
+  },
+  cancelButton: {
+    flex: 1,
+    backgroundColor: '#fff',
     paddingVertical: verticalScale(10),
     borderRadius: moderateScale(10),
-    minWidth: scale(100),
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#ef4444',
+  },
+  cancelButtonText: {
+    color: '#ef4444',
+    fontWeight: '600',
+    fontSize: moderateScale(13) / fontScale,
+  },
+  acceptButton: {
+    flex: 1,
+    backgroundColor: '#000',
+    paddingVertical: verticalScale(10),
+    borderRadius: moderateScale(10),
     alignItems: 'center',
   },
   acceptButtonText: {
@@ -400,7 +442,6 @@ const createStyles = (
     fontSize: moderateScale(13) / fontScale,
   },
 
-  // Active State Styles
   activeContainer: { gap: verticalScale(12) },
   addressBox: {
     backgroundColor: '#f9fafb',
@@ -475,6 +516,35 @@ const createStyles = (
     color: '#ffffff',
     fontWeight: '600',
     fontSize: moderateScale(14) / fontScale,
+  },
+
+  // Simple Customer OTP Display
+  otpSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(10),
+    backgroundColor: '#ecfdf5',
+    padding: scale(14),
+    borderRadius: moderateScale(12),
+    borderWidth: 1,
+    borderColor: '#d1fae5',
+  },
+  otpLabel: {
+    fontSize: moderateScale(14) / fontScale,
+    fontWeight: '600',
+    color: '#059669',
+    flex: 1,
+  },
+  otpValue: {
+    fontSize: moderateScale(18) / fontScale,
+    fontWeight: '800',
+    color: '#059669',
+    backgroundColor: '#fff',
+    paddingHorizontal: scale(12),
+    paddingVertical: verticalScale(-2),
+    borderRadius: moderateScale(6),
+    minWidth: scale(50),
+    textAlign: 'center',
   },
 });
 
